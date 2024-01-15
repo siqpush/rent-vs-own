@@ -1,0 +1,34 @@
+/* Style for select and button elements */
+select, button {
+    font-family: Arial, sans-serif; /* Smart and readable font */
+    font-size: 16px; /* Not too big, easy to read */
+    color: black; /* Text color */
+    background-color: white; /* Background color */
+    border: 1px solid #333; /* Clean border */
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1); /* Minimal shadow */
+    padding: 10px 15px; /* Padding for better appearance */
+    margin: 5px; /* Margin for spacing */
+    cursor: pointer; /* Cursor changes to pointer on hover */
+}
+
+/* Style for options in select */
+select option {
+    color: black; /* Text color for options */
+    background-color: white; /* Background color for options */
+    padding: 5px; /* Padding for options */
+}
+
+/* Hover effects */
+select:hover, button:hover {
+    box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2); /* Slightly larger shadow on hover */
+}
+
+/* Focus effects */
+select:focus, button:focus {
+    outline: none; /* Remove default focus outline */
+    border-color: #666; /* Darker border on focus */
+}
+
+select:focus, button:focus {
+    outline: 2px solid blue; /* More noticeable focus outline */
+}
