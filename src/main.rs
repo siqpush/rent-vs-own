@@ -237,121 +237,123 @@ fn Savings() -> impl IntoView {
     });
 
     view! {
-        <div class="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl">
-            <div id="plot"></div>
-            <form>
+        <div id="container" style={"display: flex"}>
+            <div id="plot-container" style={"flex: 4"}>
+                <div id="plot" style={"flex-grow: 4"}></div>
+            </div>
+            <div id="container" style={"flex: 1"}>
                 <div>
-                    <label for="Age">"Age"</label>
-                    <select id="Age" on:change=move |ev| {
-                        set_age.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                    }>
-                        <SelectOpts options=age_range/>
-                    </select>
+                    <div>
+                        <label for="Age">"Age"</label>
+                        <select id="Age" on:change=move |ev| {
+                            set_age.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                        }>
+                            <SelectOpts options=age_range/>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="Retirement Age">"Retirement Age"</label>
+                        <select id="Retirement Age" on:change=move |ev| {
+                            set_retirement_age.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                        }>
+                            <SelectOpts options=age_range/>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="Net Worth">"Net Worth"</label>
+                        <select id="Net Worth" on:change=move |ev| {
+                            set_networth.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                        }>
+                            <SelectOpts options=networth_range/>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="Monthly Income">"Monthly Income"</label>
+                        <select id="Monthly Income" on:change=move |ev| {
+                            set_monthly_income.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                        }>
+                            <SelectOpts options=incexp_range/>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="Monthly Expenses">"Monthly Expenses"</label>
+                        <select id="Monthly Expenses" on:change=move |ev| {
+                            set_monthly_expenses.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                        }>
+                            <SelectOpts options=incexp_range/>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="Rent">"Rent"</label>
+                        <select id="Rent" on:change=move |ev| {
+                            set_rent.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                        }>
+                            <SelectOpts options=incexp_range/>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="Home Value">"Home Value"</label>
+                        <select id="Home Value" on:change=move |ev| {
+                            set_home_value.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                        }>
+                            <SelectOpts options=networth_range/>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="Mortgage">"Mortgage"</label>
+                        <select id="Mortgage" on:change=move |ev| {
+                            set_mortgage.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                        }>
+                            <SelectOpts options=networth_range/>
+                        </select>
+                    </div>
+                    <div>        
+                        <label for="Mortgage Rate">"Mortgage Rate"</label>
+                        <select id="Mortgage Rate" on:change=move |ev| {
+                            set_mortgage_rate.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                        }>
+                            <SelectOpts options=mortgage_range/>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="Mortgage Term">"Mortgage Term"</label>
+                        <select id="Mortgage Term" on:change=move |ev| {
+                            set_mortgage_term.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                        }>
+                            <SelectOpts options=age_range/>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="Min Monthly Retirement Income">"Min Monthly Retirement Income"</label>
+                        <select id="Min Monthly Retirement Income" on:change=move |ev| {
+                            set_min_retirement_income
+                                .set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                        }>
+                            <SelectOpts options=incexp_range/>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="Max Monthly Retirement Income">"Max Monthly Retirement Income"</label>
+                        <select id="Max Monthly Retirement Income" on:change=move |ev| {
+                            set_max_retirement_income
+                                .set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                        }>
+                            <SelectOpts options=incexp_range/>
+                        </select>
+                    </div>
+                    <div>
+                        <button
+                            on:click=move |_| {
+                                let rates = new_rates();
+                                set_interest_rates.set(rates.0);
+                                set_inflation_rates.set(rates.1);
+                            }
+                        >
+                            "Randomize Rates"
+                        </button>
+                    </div>
                 </div>
-                <div>
-                    <label for="Retirement Age">"Retirement Age"</label>
-                    <select id="Retirement Age" on:change=move |ev| {
-                        set_retirement_age.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                    }>
-                        <SelectOpts options=age_range/>
-                    </select>
-                </div>
-                <div>
-                    <label for="Net Worth">"Net Worth"</label>
-                    <select id="Net Worth" on:change=move |ev| {
-                        set_networth.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                    }>
-                        <SelectOpts options=networth_range/>
-                    </select>
-                </div>
-                <div>
-                    <label for="Monthly Income">"Monthly Income"</label>
-                    <select id="Monthly Income" on:change=move |ev| {
-                        set_monthly_income.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                    }>
-                        <SelectOpts options=incexp_range/>
-                    </select>
-                </div>
-                <div>
-                    <label for="Monthly Expenses">"Monthly Expenses"</label>
-                    <select id="Monthly Expenses" on:change=move |ev| {
-                        set_monthly_expenses.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                    }>
-                        <SelectOpts options=incexp_range/>
-                    </select>
-                </div>
-                <div>
-                    <label for="Rent">"Rent"</label>
-                    <select id="Rent" on:change=move |ev| {
-                        set_rent.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                    }>
-                        <SelectOpts options=incexp_range/>
-                    </select>
-                </div>
-                <div>
-                    <label for="Home Value">"Home Value"</label>
-                    <select id="Home Value" on:change=move |ev| {
-                        set_home_value.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                    }>
-                        <SelectOpts options=networth_range/>
-                    </select>
-                </div>
-                <div>
-                    <label for="Mortgage">"Mortgage"</label>
-                    <select id="Mortgage" on:change=move |ev| {
-                        set_mortgage.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                    }>
-                        <SelectOpts options=networth_range/>
-                    </select>
-                </div>
-                <div>        
-                    <label for="Mortgage Rate">"Mortgage Rate"</label>
-                    <select id="Mortgage Rate" on:change=move |ev| {
-                        set_mortgage_rate.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                    }>
-                        <SelectOpts options=mortgage_range/>
-                    </select>
-                </div>
-                <div>
-                    <label for="Mortgage Term">"Mortgage Term"</label>
-                    <select id="Mortgage Term" on:change=move |ev| {
-                        set_mortgage_term.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                    }>
-                        <SelectOpts options=age_range/>
-                    </select>
-                </div>
-                <div>
-                    <label for="Min Monthly Retirement Income">"Min Monthly Retirement Income"</label>
-                    <select id="Min Monthly Retirement Income" on:change=move |ev| {
-                        set_min_retirement_income
-                            .set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                    }>
-                        <SelectOpts options=incexp_range/>
-                    </select>
-                </div>
-                <div>
-                    <label for="Max Monthly Retirement Income">"Max Monthly Retirement Income"</label>
-                    <select id="Max Monthly Retirement Income" on:change=move |ev| {
-                        set_max_retirement_income
-                            .set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                    }>
-                        <SelectOpts options=incexp_range/>
-                    </select>
-                </div>
-                <div>
-                    <button
-                        on:click=move |_| {
-                            let rates = new_rates();
-                            set_interest_rates.set(rates.0);
-                            set_inflation_rates.set(rates.1);
-                        }
-
-                        class="text-black border border-gray-300 bg-white hover:bg-gray-100"
-                    >
-                        "Submit"
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
     }
 }
