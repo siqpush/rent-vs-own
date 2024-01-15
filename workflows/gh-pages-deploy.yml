@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # for committing to gh-pages branch.
+  contents: write
   pages: write
   id-token: write
 
