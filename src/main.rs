@@ -40,7 +40,7 @@ fn SelectOpts(options: ReadSignal<[Opts; 100]>) -> impl IntoView {
             .enumerate()
             .map(|(i, opt)| match opt {
                 Opts::Int(opt) => {
-                    if i == 10 {
+                    if i == 50 {
                         view! {
                             <option type="number" selected="selected" value=opt>
                                 {opt}
@@ -55,7 +55,7 @@ fn SelectOpts(options: ReadSignal<[Opts; 100]>) -> impl IntoView {
                     }
                 }
                 Opts::Float(opt) => {
-                    if i == 10 {
+                    if i == 30 {
                         view! {
                             <option type="number" selected="selected" value=opt>
 
@@ -94,6 +94,41 @@ fn SelectOpts(options: ReadSignal<[Opts; 100]>) -> impl IntoView {
 
 #[component]
 fn Savings() -> impl IntoView {
+    let (width, set_width) = create_signal(None::<f64>);
+    let fetch_width = move || {
+        match leptos::window().inner_width() {
+            Ok(val) => {
+                set_width.set(val.as_f64());
+            }
+            Err(e) => {
+                logging::error!("Error getting window width: {:?}", e);
+                set_width.set(None);
+            }
+        };
+    };
+
+    let (height, set_height) = create_signal(None::<f64>);
+    let fetch_height = move || {
+        match leptos::window().inner_height() {
+            Ok(val) => {
+                set_height.set(val.as_f64());
+            }
+            Err(e) => {
+                logging::error!("Error getting window height: {:?}", e);
+                set_height.set(None);
+            }
+        };
+    };
+
+    let plot_width = move || width.get().map(|width| width * 0.75);
+
+    let plot_height = move || height.get().map(|height| height * 0.5);
+
+    leptos::window_event_listener(ev::resize, move |_| {
+        fetch_width();
+        fetch_height();
+    });
+
     let (age_range, _) = create_signal(AGE_RANGE);
     let (mortgage_range, _) = create_signal(MORTGAGE_RATES);
     let (networth_range, _) = create_signal(NETWORTH_RANGE);
@@ -178,7 +213,7 @@ fn Savings() -> impl IntoView {
     });
 
     let plot_resource = create_local_resource(
-        || (),
+        move || (width, height),
         move |_| async move {
             let mut plot = Plot::new();
             let start_x_value = age.get_untracked().get_int() as usize;
@@ -197,20 +232,32 @@ fn Savings() -> impl IntoView {
                 x_values.to_vec(),
                 renter_savings_arr.get_untracked()[start_x_value..DEATH].to_vec(),
             )
-            //.mode(Mode::Lines)
             .visible(plotly::common::Visible::True)
             .fill_color(NamedColor::LightSalmon)
             .name("Renter");
 
             plot.add_trace(owner_trace);
             plot.add_trace(renter_trace);
-            //let mut layout = plotly::Layout::new();
-            plot.set_layout(
+
+            // sizing plot
+            let err_sizing = || {
                 plotly::Layout::new()
                     .title(Title::new("Renting vs Owning"))
                     .show_legend(true)
-                    .auto_size(true),
-            );
+                    .auto_size(true)
+            };
+            if let (Some(width), Some(height)) = (plot_width(), plot_height()) {
+                plot.set_layout(
+                    plotly::Layout::new()
+                        .title(Title::new("Renting vs Owning"))
+                        .show_legend(true)
+                        .width(width as usize)
+                        .height(height as usize),
+                );
+            } else {
+                plot.set_layout(err_sizing())
+            }
+
             //plot.set_layout(layout);
             plotly::bindings::new_plot("plot", &plot).await;
         },
@@ -233,124 +280,172 @@ fn Savings() -> impl IntoView {
         renter_savings_derived.get();
         inflation_rates.get();
         interest_rates.get();
+        width.get();
+        height.get();
         plot_resource.refetch();
     });
 
     view! {
-        <div id="container" style={"display: flex"}>
-            <div id="plot-container" style={"flex: 4"}>
-                <div id="plot" style={"flex-grow: 4"}></div>
+        <div id="container">
+            <div id="plot-container">
+                <div id="plot"></div>
             </div>
-            <div id="container" style={"flex: 1"}>
+            <div id="container">
+                <div>
+                    <button on:click=move |_| {
+                        let rates = new_rates();
+                        set_interest_rates.set(rates.0);
+                        set_inflation_rates.set(rates.1);
+                    }>
+
+                        "Randomize Rates"
+
+                    </button>
+                </div>
                 <div>
                     <div>
                         <label for="Age">"Age"</label>
-                        <select id="Age" on:change=move |ev| {
-                            set_age.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                        }>
+                        <select
+                            id="Age"
+                            on:change=move |ev| {
+                                set_age.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                            }
+                        >
                             <SelectOpts options=age_range/>
                         </select>
                     </div>
                     <div>
                         <label for="Retirement Age">"Retirement Age"</label>
-                        <select id="Retirement Age" on:change=move |ev| {
-                            set_retirement_age.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                        }>
+                        <select
+                            id="Retirement Age"
+                            on:change=move |ev| {
+                                set_retirement_age
+                                    .set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                            }
+                        >
                             <SelectOpts options=age_range/>
                         </select>
                     </div>
                     <div>
                         <label for="Net Worth">"Net Worth"</label>
-                        <select id="Net Worth" on:change=move |ev| {
-                            set_networth.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                        }>
+                        <select
+                            id="Net Worth"
+                            on:change=move |ev| {
+                                set_networth.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                            }
+                        >
                             <SelectOpts options=networth_range/>
                         </select>
                     </div>
                     <div>
                         <label for="Monthly Income">"Monthly Income"</label>
-                        <select id="Monthly Income" on:change=move |ev| {
-                            set_monthly_income.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                        }>
+                        <select
+                            id="Monthly Income"
+                            on:change=move |ev| {
+                                set_monthly_income
+                                    .set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                            }
+                        >
                             <SelectOpts options=incexp_range/>
                         </select>
                     </div>
                     <div>
                         <label for="Monthly Expenses">"Monthly Expenses"</label>
-                        <select id="Monthly Expenses" on:change=move |ev| {
-                            set_monthly_expenses.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                        }>
+                        <select
+                            id="Monthly Expenses"
+                            on:change=move |ev| {
+                                set_monthly_expenses
+                                    .set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                            }
+                        >
                             <SelectOpts options=incexp_range/>
                         </select>
                     </div>
                     <div>
                         <label for="Rent">"Rent"</label>
-                        <select id="Rent" on:change=move |ev| {
-                            set_rent.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                        }>
+                        <select
+                            id="Rent"
+                            on:change=move |ev| {
+                                set_rent.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                            }
+                        >
                             <SelectOpts options=incexp_range/>
                         </select>
                     </div>
                     <div>
                         <label for="Home Value">"Home Value"</label>
-                        <select id="Home Value" on:change=move |ev| {
-                            set_home_value.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                        }>
+                        <select
+                            id="Home Value"
+                            on:change=move |ev| {
+                                set_home_value
+                                    .set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                            }
+                        >
                             <SelectOpts options=networth_range/>
                         </select>
                     </div>
                     <div>
                         <label for="Mortgage">"Mortgage"</label>
-                        <select id="Mortgage" on:change=move |ev| {
-                            set_mortgage.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                        }>
+                        <select
+                            id="Mortgage"
+                            on:change=move |ev| {
+                                set_mortgage.set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                            }
+                        >
                             <SelectOpts options=networth_range/>
                         </select>
                     </div>
-                    <div>        
+                    <div>
                         <label for="Mortgage Rate">"Mortgage Rate"</label>
-                        <select id="Mortgage Rate" on:change=move |ev| {
-                            set_mortgage_rate.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                        }>
+                        <select
+                            id="Mortgage Rate"
+                            on:change=move |ev| {
+                                set_mortgage_rate
+                                    .set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                            }
+                        >
                             <SelectOpts options=mortgage_range/>
                         </select>
                     </div>
                     <div>
                         <label for="Mortgage Term">"Mortgage Term"</label>
-                        <select id="Mortgage Term" on:change=move |ev| {
-                            set_mortgage_term.set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                        }>
+                        <select
+                            id="Mortgage Term"
+                            on:change=move |ev| {
+                                set_mortgage_term
+                                    .set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                            }
+                        >
                             <SelectOpts options=age_range/>
                         </select>
                     </div>
                     <div>
-                        <label for="Min Monthly Retirement Income">"Min Monthly Retirement Income"</label>
-                        <select id="Min Monthly Retirement Income" on:change=move |ev| {
-                            set_min_retirement_income
-                                .set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                        }>
-                            <SelectOpts options=incexp_range/>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="Max Monthly Retirement Income">"Max Monthly Retirement Income"</label>
-                        <select id="Max Monthly Retirement Income" on:change=move |ev| {
-                            set_max_retirement_income
-                                .set(Opts::from_str(&event_target_value(&ev)).unwrap())
-                        }>
-                            <SelectOpts options=incexp_range/>
-                        </select>
-                    </div>
-                    <div>
-                        <button
-                            on:click=move |_| {
-                                let rates = new_rates();
-                                set_interest_rates.set(rates.0);
-                                set_inflation_rates.set(rates.1);
+                        <label for="Min Monthly Retirement Income">
+                            "Min Monthly Retirement Income"
+                        </label>
+                        <select
+                            id="Min Monthly Retirement Income"
+                            on:change=move |ev| {
+                                set_min_retirement_income
+                                    .set(Opts::from_str(&event_target_value(&ev)).unwrap())
                             }
                         >
-                            "Randomize Rates"
-                        </button>
+                            <SelectOpts options=incexp_range/>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="Max Monthly Retirement Income">
+                            "Max Monthly Retirement Income"
+                        </label>
+                        <select
+                            id="Max Monthly Retirement Income"
+                            on:change=move |ev| {
+                                set_max_retirement_income
+                                    .set(Opts::from_str(&event_target_value(&ev)).unwrap())
+                            }
+                        >
+                            <SelectOpts options=incexp_range/>
+                        </select>
                     </div>
                 </div>
             </div>
