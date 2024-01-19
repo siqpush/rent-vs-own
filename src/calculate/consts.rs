@@ -30,14 +30,16 @@ impl Opts {
 
     pub fn opt_from_u8_str(s: &str) -> Self {
         Opts::Int(s.parse::<u8>().unwrap_or_else(|s| {
-                logging::error!("Error parsing string to u8: {}", s); panic!("Error parsing string to u8")
-            }))
+            logging::error!("Error parsing string to u8: {}", s);
+            panic!("Error parsing string to u8")
+        }))
     }
 
     pub fn opt_from_f32_str(s: &str) -> Self {
         Opts::Float(s.parse::<f32>().unwrap_or_else(|s| {
-                logging::error!("Error parsing string to f32: {}", s); panic!("Error parsing string to f32")
-            }))
+            logging::error!("Error parsing string to f32: {}", s);
+            panic!("Error parsing string to f32")
+        }))
     }
 }
 
@@ -127,6 +129,4 @@ pub const NETWORTH_RANGE: [Opts; DEATH] = convert_to_float_opts![
     50000000.0
 ];
 
-pub const YAXIS_BUCKETS: [f32; 5] = [
-    1000000.0, 10000000.0, 50000000.0, 100000000.0, 1000000000.0
-];
+pub const YAXIS_BUCKETS: [f32; 5] = [1000000.0, 10000000.0, 50000000.0, 100000000.0, 1000000000.0];
