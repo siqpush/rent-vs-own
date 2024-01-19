@@ -1,25 +1,9 @@
-use std::str::FromStr;
-
-use leptos::error::Error;
+use leptos::logging;
 use serde::Serialize;
 #[derive(Clone, Copy, Serialize, Debug)]
 pub enum Opts {
     Int(u8),
     Float(f32),
-}
-
-impl FromStr for Opts {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.contains('.') || s.len() > 3 {
-            let num = s.parse::<f32>().unwrap();
-            Ok(Opts::Float(num))
-        } else {
-            let num = s.parse::<u8>().unwrap();
-            Ok(Opts::Int(num))
-        }
-    }
 }
 
 impl Opts {
@@ -43,6 +27,26 @@ impl Opts {
             Opts::Float(x) => x,
         }
     }
+
+    pub fn opt_from_u8_str(s: &str) -> Self {
+        Opts::Int(s.parse::<u8>().unwrap_or_else(|s| {
+            logging::error!("Error parsing string to u8: {}", s);
+            panic!("Error parsing string to u8")
+        }))
+    }
+
+    pub fn opt_from_f32_str(s: &str) -> Self {
+        Opts::Float(s.parse::<f32>().unwrap_or_else(|s| {
+            logging::error!("Error parsing string to f32: {}", s);
+            panic!("Error parsing string to f32")
+        }))
+    }
+}
+
+#[derive(Clone, Copy, Serialize, Debug)]
+pub enum OptType {
+    Int,
+    Float,
 }
 
 macro_rules! convert_to_int_opts {
@@ -124,3 +128,5 @@ pub const NETWORTH_RANGE: [Opts; DEATH] = convert_to_float_opts![
     4400000.0, 4600000.0, 4800000.0, 5000000.0, 10000000.0, 20000000.0, 30000000.0, 40000000.0,
     50000000.0
 ];
+
+pub const YAXIS_BUCKETS: [f32; 5] = [1000000.0, 10000000.0, 50000000.0, 100000000.0, 1000000000.0];

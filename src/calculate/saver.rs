@@ -1,4 +1,4 @@
-use leptos::{ReadSignal, SignalWith};
+use leptos::{ReadSignal, SignalWithUntracked};
 //use serde::{Deserialize, Serialize};
 use super::{
     consts::Opts,
@@ -43,7 +43,7 @@ impl Saver {
     // monthly inflation rate
     pub fn monthly_inflation(&self) -> impl Fn() -> f32 + '_ {
         move || {
-            self.inflation_rates.with(|inflation_rates| {
+            self.inflation_rates.with_untracked(|inflation_rates| {
                 inflation_rates[self.current_age as usize].get_float_ref() / 12.0
             })
         }
@@ -51,7 +51,7 @@ impl Saver {
     // monthly interest rate
     pub fn monthly_interest(&self) -> impl Fn() -> f32 + '_ {
         move || {
-            self.interest_rates.with(|interest_rates| {
+            self.interest_rates.with_untracked(|interest_rates| {
                 interest_rates[self.current_age as usize].get_float_ref() / 12.0
             })
         }
