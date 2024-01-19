@@ -10,7 +10,7 @@ use leptos_use::utils::Pausable;
 use leptos_use::*;
 use num_format::{Locale, ToFormattedString};
 use plotly::color::NamedColor;
-use plotly::common::{Title, Font};
+use plotly::common::{Font, Title};
 use plotly::layout::Axis;
 use plotly::Plot;
 use plotly::Scatter;
@@ -388,46 +388,50 @@ fn App() -> impl IntoView {
                 <div id="plot-container-top-row">
                     <div id="plot-container-chart">
                         <div id="plot"></div>
-                        
+
                     </div>
                     <div id="plot-container-methodology">
-                        <Show when={move || expand_methodology.get()}>
-                                <h3>Methodology</h3>
-                                <p>
-                                    "This calculator compares the savings of a renter vs a home owner.
-                                    A Monte Carlo simulation is used to calculate stock market returns
-                                    and inflation rates. The simulation run 1000 times would produce 
-                                    interest rates starting close to the following: 6.25% and falls to
-                                    4.5% as you age. Additionally the std deviation of the interest rates
-                                    also decreases as you age to assume less risk is introduced the less
-                                    time you have to recover from a market crash. Both interest and inflation
-                                    are compounded monthly using an annual interest rate / 12.0. Inflation is 
-                                    impacts rent, home expenses (1% annually), monthly expenses, and monthly income.
-                                    Interest is only applied to liquid assets (home value is not interest bearing).
-                                    We assume you continue to live in the same home for the duration of the simulation.
-                                    "
-                                </p>
+                        <Show when=move || expand_methodology.get()>
+                            <h3>Methodology</h3>
+                            <p>
+                                "This calculator compares the savings of a renter vs a home owner.
+                                A Monte Carlo simulation is used to calculate stock market returns
+                                and inflation rates. The simulation run 1000 times would produce 
+                                interest rates starting close to the following: 6.25% and falls to
+                                4.5% as you age. Additionally the std deviation of the interest rates
+                                also decreases as you age to assume less risk is introduced the less
+                                time you have to recover from a market crash. Both interest and inflation
+                                are compounded monthly using an annual interest rate / 12.0. Inflation is 
+                                impacts rent, home expenses (1% annually), monthly expenses, and monthly income.
+                                Interest is only applied to liquid assets (home value is not interest bearing).
+                                We assume you continue to live in the same home for the duration of the simulation.
+                                "
+                            </p>
                         </Show>
                     </div>
                 </div>
                 <div id="plot-container-action-button">
                     <button on:click=move |_| {
-                            set_pause_resume.set(!pause_resume.get());
-                    }
-                    >
-                    {move || { if pause_resume.get() { "Resume" } else { "Pause" } }}
-                    </button>
-                    <button id="methodology-button" on:click=move |_| {
                         set_pause_resume.set(!pause_resume.get());
-                        set_expand_methodology.set(!expand_methodology.get());
                     }>
+
+                        {move || { if pause_resume.get() { "Resume" } else { "Pause" } }}
+                    </button>
+                    <button
+                        id="methodology-button"
+                        on:click=move |_| {
+                            set_pause_resume.set(!pause_resume.get());
+                            set_expand_methodology.set(!expand_methodology.get());
+                        }
+                    >
                         {move || {
-                            if expand_methodology.get() { 
+                            if expand_methodology.get() {
                                 "Hide Methodology"
-                            } else { 
+                            } else {
                                 "Show Methodology"
                             }
                         }}
+
                     </button>
                 </div>
             </div>
@@ -471,14 +475,19 @@ where
         <div id="select-container">
             <div id="select-container-options">
                 <label for=name.clone()>{name.clone()}</label>
-                <select id=name.clone() on:change=move |ev| {
-                    match numtype {
-                        OptType::Int => set_val.set(Opts::opt_from_u8_str(&event_target_value(&ev))),
-                        OptType::Float => {
-                            set_val.set(Opts::opt_from_f32_str(&event_target_value(&ev)))
+                <select
+                    id=name.clone()
+                    on:change=move |ev| {
+                        match numtype {
+                            OptType::Int => {
+                                set_val.set(Opts::opt_from_u8_str(&event_target_value(&ev)))
+                            }
+                            OptType::Float => {
+                                set_val.set(Opts::opt_from_f32_str(&event_target_value(&ev)))
+                            }
                         }
                     }
-                }>
+                >
 
                     <SelectOpts options=move || (optarr, default_val)/>
                 </select>
