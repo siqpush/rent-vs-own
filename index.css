@@ -1,3 +1,9 @@
+html {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-style: normal;
+}
+
 select, button {
     color: black; /* Text color */
     background-color: white; /* Background color */
@@ -49,6 +55,8 @@ select:focus, button:focus {
 #plot-container {
     display: flex; /* Enables Flexbox */
     flex-direction: column; /* Stacks children vertically */
+    height: 500px; /* Fixed height, adjust as necessary */
+    /* Or use max-height: 500px; for a maximum height */
 }
 
 #plot-container-top-row {
@@ -56,16 +64,19 @@ select:focus, button:focus {
 }
 
 #plot-container-chart {
-    flex: 4; /* Takes up 4/5 of the space */
+    flex: 1 1 auto; /* Don't grow, shrink as needed, based on content */
+    overflow: hidden;
 }
 
 #plot-container-methodology {
-    flex: 1; /* Takes up 1/5 of the space */
-    padding-left: 10px; /* Optional: Adds some space between the chart and methodology */
+    flex: 1 1 auto; /* Don't grow, shrink as needed, based on content */
+    padding-left: 10px;
+    overflow: hidden;
+     /* Adds some space between the chart and methodology */
 }
 
 #plot-container-action-button {
-    margin-top: 10px; /* Optional: Adds space above the button */
+    margin-top: 10px; /* Adds space above the button */
     display: flex; /* Enables Flexbox */
     justify-content: center; /* Centers the button horizontally */
 }
