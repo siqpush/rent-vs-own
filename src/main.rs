@@ -11,7 +11,7 @@ use leptos_use::*;
 use num_format::{Locale, ToFormattedString};
 use plotly::color::NamedColor;
 use plotly::common::{Font, Title};
-use plotly::layout::Axis;
+use plotly::layout::{Axis, ItemSizing, Legend};
 use plotly::Plot;
 use plotly::Scatter;
 
@@ -60,6 +60,7 @@ fn App() -> impl IntoView {
         fetch_width();
         fetch_height();
     });
+
     let (expand_methodology, set_expand_methodology) = create_signal(false);
     let (pause_resume, set_pause_resume) = create_signal(false);
     let (interval, _) = create_signal(1000_u64);
@@ -72,11 +73,12 @@ fn App() -> impl IntoView {
         default_val: Opts::Int(45),
         optarr: &AGE_RANGE,
     };
+
     let (networth, set_networth) = create_signal(Opts::Float(200000.0));
     let networth_opts = || OptionMeta {
         numtype: OptType::Float,
         name: "Net Worth".to_string(),
-        info: "this is your current net worth (savings + home value)".to_string(),
+        info: "this is your current net worth (*include home principle)".to_string(),
         default_val: Opts::Float(100000.0),
         optarr: &NETWORTH_RANGE,
     };
@@ -126,12 +128,12 @@ fn App() -> impl IntoView {
             optarr: &NETWORTH_RANGE,
         }
     };
-    let (mortgage, set_mortgage) = create_signal(Opts::Float(500000.0));
+    let (mortgage, set_mortgage) = create_signal(Opts::Float(0.0));
     let mortgage_opts = || OptionMeta {
         numtype: OptType::Float,
         name: "Mortgage".to_string(),
         info: "current/total mortgage amount on home".to_string(),
-        default_val: Opts::Float(500000.0),
+        default_val: Opts::Float(0.0),
         optarr: &NETWORTH_RANGE,
     };
     let (mortgage_rate, set_mortgage_rate) = create_signal(Opts::Float(0.03));
@@ -238,9 +240,60 @@ fn App() -> impl IntoView {
         move || (width, height),
         move |_| async move {
             let mut plot = Plot::new();
-            let start_x_value = age.get_untracked().get_int() as usize;
-            let x_values = &AGE_RANGE_FLOATS[start_x_value..DEATH];
 
+            // x axis data / format
+            let start_x_value = 0_usize;
+            let x_values = &AGE_RANGE_FLOATS[start_x_value..DEATH];
+            let x_axis = || Axis::new().title("Age".into());
+
+            // function to calculate avg returns for annotation
+            let avg_returns = || {
+                interest_rates.with(|interest_rates| {
+                    interest_rates[start_x_value..DEATH]
+                        .iter()
+                        .map(|x| x.get_float_ref())
+                        .sum::<f32>()
+                        / (DEATH - start_x_value) as f32
+                })
+            };
+
+            // function to calculate std dev for annotation
+            let std_dev = || {
+                interest_rates.with(|interest_rates| {
+                    interest_rates[start_x_value..DEATH]
+                        .iter()
+                        .map(|x| x.get_float_ref())
+                        .fold(0.0, |acc, x| acc + (x - avg_returns()).powi(2))
+                        .sqrt()
+                        / (DEATH - start_x_value) as f32
+                })
+            };
+
+            // adding annotations for avg return
+            let avg_return_annotate = || {
+                plotly::layout::Annotation::new()
+                    .text(format!("Avg Returns: {:.1}%", avg_returns() * 100.0,))
+                    .x_ref("paper")
+                    .x(0.0)
+                    .y_ref("paper")
+                    .y(1.075)
+                    .show_arrow(false)
+                    .font(Font::new().size(12))
+            };
+
+            // adding annotations for std dev
+            let std_dev_annotate = || {
+                plotly::layout::Annotation::new()
+                    .text(format!("Risk: {:.1}%", std_dev() * 100.0,))
+                    .x_ref("paper")
+                    .x(0.0)
+                    .y_ref("paper")
+                    .y(1.0)
+                    .show_arrow(false)
+                    .font(Font::new().size(12))
+            };
+
+            // y axis data / format
             let y_axis = || {
                 let owner_max = owner_savings_arr.with_untracked(|owner_savings_arr| {
                     *owner_savings_arr[start_x_value..DEATH]
@@ -276,11 +329,18 @@ fn App() -> impl IntoView {
                     .auto_range(false)
             };
 
+            let legend = || {
+                Legend::new()
+                    .x(1.0)
+                    .y(1.0)
+                    .item_sizing(ItemSizing::Trace)
+                    .font(Font::new().size(12))
+            };
+
             let owner_trace = Scatter::new(
                 x_values.to_vec(),
                 owner_savings_arr.get_untracked()[start_x_value..DEATH].to_vec(),
             )
-            //.mode(Mode::Lines)
             .visible(plotly::common::Visible::True)
             .fill_color(NamedColor::PaleTurquoise)
             .name("Owner");
@@ -300,8 +360,9 @@ fn App() -> impl IntoView {
             let err_sizing = || {
                 plotly::Layout::new()
                     .title(Title::new("Renting vs Owning"))
-                    .show_legend(true)
-                    .x_axis(Axis::new().title("Age".into()).range(x_values.to_vec()))
+                    .legend(legend())
+                    .annotations(vec![avg_return_annotate(), std_dev_annotate()])
+                    .x_axis(x_axis())
                     .y_axis(y_axis())
                     .auto_size(true)
             };
@@ -311,16 +372,16 @@ fn App() -> impl IntoView {
                     width.get_untracked().map(|width| width * 0.75),
                     height.get_untracked().map(|height| height * 0.5),
                 ) {
-                    plot.set_layout(
-                        plotly::Layout::new()
-                            .font(Font::new().family("Courier New, monospace"))
-                            .title(Title::new("Renting vs Owning"))
-                            .show_legend(true)
-                            .width(width as usize)
-                            .height(height as usize)
-                            .x_axis(Axis::new().title("Age".into()).range(x_values.to_vec()))
-                            .y_axis(y_axis()),
-                    );
+                    let layout = plotly::Layout::new()
+                        .font(Font::new().family("Courier New, monospace"))
+                        .title(Title::new("Renting vs Owning"))
+                        .legend(legend())
+                        .annotations(vec![avg_return_annotate(), std_dev_annotate()])
+                        .width(width as usize)
+                        .height(height as usize)
+                        .x_axis(x_axis())
+                        .y_axis(y_axis());
+                    plot.set_layout(layout)
                 } else {
                     plot.set_layout(err_sizing())
                 }
@@ -328,7 +389,6 @@ fn App() -> impl IntoView {
 
             sizing();
 
-            //plot.set_layout(layout);
             plotly::bindings::new_plot("plot", &plot).await;
         },
     );
@@ -353,15 +413,6 @@ fn App() -> impl IntoView {
     );
 
     create_effect(move |_| {
-        expand_methodology.get();
-        if pause_resume.get() && is_active.get() {
-            pause();
-        } else {
-            resume();
-        }
-    });
-
-    create_effect(move |_| {
         age.get();
         networth.get();
         retirement_age.get();
@@ -380,6 +431,12 @@ fn App() -> impl IntoView {
         width.get();
         height.get();
         plot_resource.refetch();
+        expand_methodology.get();
+        if pause_resume.get() && is_active.get() {
+            pause();
+        } else {
+            resume();
+        }
     });
 
     view! {
@@ -424,6 +481,7 @@ fn App() -> impl IntoView {
                             set_expand_methodology.set(!expand_methodology.get());
                         }
                     >
+
                         {move || {
                             if expand_methodology.get() {
                                 "Hide Methodology"
@@ -444,8 +502,10 @@ fn App() -> impl IntoView {
                 <DisplayOptions set_val=set_rent fn_meta=rent_opts/>
                 <DisplayOptions set_val=set_home_value fn_meta=home_value_opts/>
                 <DisplayOptions set_val=set_mortgage fn_meta=mortgage_opts/>
-                <DisplayOptions set_val=set_mortgage_rate fn_meta=mortgage_rate_opts/>
-                <DisplayOptions set_val=set_mortgage_term fn_meta=mortgage_term_opts/>
+                <Show when=move || mortgage.get().get_float_ref() != &0.0>
+                    <DisplayOptions set_val=set_mortgage_rate fn_meta=mortgage_rate_opts/>
+                    <DisplayOptions set_val=set_mortgage_term fn_meta=mortgage_term_opts/>
+                </Show>
                 <DisplayOptions
                     set_val=set_min_retirement_income
                     fn_meta=min_retirement_income_opts

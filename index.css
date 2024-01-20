@@ -70,7 +70,7 @@ select:focus, button:focus {
 
 #plot-container-methodology {
     flex: 1 1 auto; /* Don't grow, shrink as needed, based on content */
-    padding-left: 10px;
+    padding-left: 5px;
     overflow: hidden;
      /* Adds some space between the chart and methodology */
 }
