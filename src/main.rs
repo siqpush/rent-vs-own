@@ -1,4 +1,5 @@
 mod calculate;
+
 use crate::calculate::consts::*;
 use crate::calculate::rates::new_rates;
 use crate::calculate::saver::{Saver, SaverType};
@@ -11,7 +12,7 @@ use leptos_use::*;
 use num_format::{Locale, ToFormattedString};
 use plotly::color::NamedColor;
 use plotly::common::{Font, Title};
-use plotly::layout::{Axis, ItemSizing, Legend};
+use plotly::layout::Axis;
 use plotly::Plot;
 use plotly::Scatter;
 
@@ -63,7 +64,7 @@ fn App() -> impl IntoView {
 
     let (expand_methodology, set_expand_methodology) = create_signal(false);
     let (pause_resume, set_pause_resume) = create_signal(false);
-    let (interval, _) = create_signal(1000_u64);
+    let (interval, _) = create_signal(500_u64);
 
     let (age, set_age) = create_signal(Opts::Int(40));
     let age_opts = || OptionMeta {
@@ -236,63 +237,193 @@ fn App() -> impl IntoView {
         set_owner_savings_arr.set(owner_savings());
     });
 
+    // plotly chart showing savings
     let plot_resource = create_local_resource(
         move || (width, height),
         move |_| async move {
             let mut plot = Plot::new();
 
             // x axis data / format
-            let start_x_value = 0_usize;
+            let start_x_value = age.get_untracked().get_int() as usize;
             let x_values = &AGE_RANGE_FLOATS[start_x_value..DEATH];
             let x_axis = || Axis::new().title("Age".into());
 
-            // function to calculate avg returns for annotation
-            let avg_returns = || {
-                interest_rates.with(|interest_rates| {
-                    interest_rates[start_x_value..DEATH]
-                        .iter()
-                        .map(|x| x.get_float_ref())
-                        .sum::<f32>()
+            let annotations = || {
+                // function to calculate avg returns for annotation
+                let avg_returns = |start: usize, stop: usize| {
+                    interest_rates.with(|interest_rates| {
+                        interest_rates[start..stop]
+                            .iter()
+                            .map(|x| x.get_float_ref())
+                            .sum::<f32>()
+                            / (stop - start) as f32
+                    })
+                };
+
+                // function to calculate std dev for annotation
+                let std_dev = |start: usize, stop: usize| {
+                    interest_rates.with(|interest_rates| {
+                        interest_rates[start..stop]
+                            .iter()
+                            .map(|x| x.get_float_ref())
+                            .fold(0.0, |acc, x| acc + (x - avg_returns(start, stop)).powi(2))
+                            .sqrt()
+                            / (stop - start) as f32
+                    })
+                };
+
+                let x_pos = |start: usize, stop: usize| {
+                    (((stop + start) as f32 / 2.0) - start_x_value as f32)
                         / (DEATH - start_x_value) as f32
-                })
-            };
+                };
 
-            // function to calculate std dev for annotation
-            let std_dev = || {
-                interest_rates.with(|interest_rates| {
-                    interest_rates[start_x_value..DEATH]
-                        .iter()
-                        .map(|x| x.get_float_ref())
-                        .fold(0.0, |acc, x| acc + (x - avg_returns()).powi(2))
-                        .sqrt()
-                        / (DEATH - start_x_value) as f32
-                })
-            };
+                // adding annotations for avg return
+                let avg_return_annotate = || {
+                    [
+                        plotly::layout::Annotation::new()
+                            .text(format!("{:.1}%", avg_returns(0, 35) * 100.0,))
+                            .x_ref("paper")
+                            .x(x_pos(0, 35))
+                            .y_ref("paper")
+                            .y(1.1)
+                            .show_arrow(false)
+                            .text_angle(27.0)
+                            .font(Font::new().size(10).color(NamedColor::DarkSeaGreen)),
+                        plotly::layout::Annotation::new()
+                            .text(format!("{:.1}%", avg_returns(36, 49) * 100.0,))
+                            .x_ref("paper")
+                            .x(x_pos(36, 49))
+                            .y_ref("paper")
+                            .y(1.1)
+                            .show_arrow(false)
+                            .text_angle(27.0)
+                            .font(Font::new().size(10).color(NamedColor::DarkSeaGreen)),
+                        plotly::layout::Annotation::new()
+                            .text(format!("{:.1}%", avg_returns(50, 64) * 100.0,))
+                            .x_ref("paper")
+                            .x(x_pos(50, 64))
+                            .y_ref("paper")
+                            .y(1.1)
+                            .show_arrow(false)
+                            .text_angle(27.0)
+                            .font(Font::new().size(10).color(NamedColor::DarkSeaGreen)),
+                        plotly::layout::Annotation::new()
+                            .text(format!("{:.1}%", avg_returns(65, 80) * 100.0,))
+                            .x_ref("paper")
+                            .x(x_pos(65, 80))
+                            .y_ref("paper")
+                            .y(1.1)
+                            .show_arrow(false)
+                            .text_angle(27.0)
+                            .font(Font::new().size(10).color(NamedColor::DarkSeaGreen)),
+                        plotly::layout::Annotation::new()
+                            .text(format!("{:.1}%", avg_returns(81, DEATH) * 100.0,))
+                            .x_ref("paper")
+                            .x(x_pos(81, DEATH))
+                            .y_ref("paper")
+                            .y(1.1)
+                            .show_arrow(false)
+                            .text_angle(27.0)
+                            .font(Font::new().size(10).color(NamedColor::DarkSeaGreen)),
+                        plotly::layout::Annotation::new()
+                            .text("ROI")
+                            .x_ref("paper")
+                            .x(-0.05)
+                            .y_ref("paper")
+                            .y(1.1)
+                            .show_arrow(false)
+                            .text_angle(0.0)
+                            .background_color(NamedColor::DarkSeaGreen)
+                            .font(Font::new().size(10).color(NamedColor::FloralWhite)),
+                    ]
+                };
 
-            // adding annotations for avg return
-            let avg_return_annotate = || {
-                plotly::layout::Annotation::new()
-                    .text(format!("Avg Returns: {:.1}%", avg_returns() * 100.0,))
-                    .x_ref("paper")
-                    .x(0.0)
-                    .y_ref("paper")
-                    .y(1.075)
-                    .show_arrow(false)
-                    .font(Font::new().size(12))
-            };
+                // adding annotations for std dev
+                let std_dev_annotate = || {
+                    [
+                        plotly::layout::Annotation::new()
+                            .text(format!("{:.1}%", std_dev(0, 35) * 100.0,))
+                            .x_ref("paper")
+                            .x(x_pos(0, 35))
+                            .y_ref("paper")
+                            .y(1.0)
+                            .show_arrow(false)
+                            .text_angle(27.0)
+                            .font(Font::new().size(10).color(NamedColor::LightSalmon)),
+                        plotly::layout::Annotation::new()
+                            .text(format!("{:.1}%", std_dev(36, 49) * 100.0,))
+                            .x_ref("paper")
+                            .x(x_pos(36, 49))
+                            .y_ref("paper")
+                            .y(1.0)
+                            .show_arrow(false)
+                            .text_angle(27.0)
+                            .font(Font::new().size(10).color(NamedColor::LightSalmon)),
+                        plotly::layout::Annotation::new()
+                            .text(format!("{:.1}%", std_dev(50, 64) * 100.0,))
+                            .x_ref("paper")
+                            .x(x_pos(50, 64))
+                            .y_ref("paper")
+                            .y(1.0)
+                            .show_arrow(false)
+                            .text_angle(27.0)
+                            .font(Font::new().size(10).color(NamedColor::LightSalmon)),
+                        plotly::layout::Annotation::new()
+                            .text(format!("{:.1}%", std_dev(65, 80) * 100.0,))
+                            .x_ref("paper")
+                            .x(x_pos(65, 80))
+                            .y_ref("paper")
+                            .y(1.0)
+                            .show_arrow(false)
+                            .text_angle(27.0)
+                            .font(Font::new().size(10).color(NamedColor::LightSalmon)),
+                        plotly::layout::Annotation::new()
+                            .text(format!("{:.1}%", std_dev(81, DEATH) * 100.0,))
+                            .x_ref("paper")
+                            .x(x_pos(81, DEATH))
+                            .y_ref("paper")
+                            .y(1.0)
+                            .show_arrow(false)
+                            .text_angle(27.0)
+                            .font(Font::new().size(10).color(NamedColor::LightSalmon)),
+                        plotly::layout::Annotation::new()
+                            .text("Beta")
+                            .x_ref("paper")
+                            .x(-0.05)
+                            .y_ref("paper")
+                            .y(1.025)
+                            .show_arrow(false)
+                            .text_angle(0.0)
+                            .background_color(NamedColor::LightSalmon)
+                            .font(Font::new().size(10).color(NamedColor::FloralWhite)),
+                    ]
+                };
 
-            // adding annotations for std dev
-            let std_dev_annotate = || {
-                plotly::layout::Annotation::new()
-                    .text(format!("Risk: {:.1}%", std_dev() * 100.0,))
-                    .x_ref("paper")
-                    .x(0.0)
-                    .y_ref("paper")
-                    .y(1.0)
-                    .show_arrow(false)
-                    .font(Font::new().size(12))
+                let mut annotation_vec = vec![];
+                match age.get_untracked().get_int() {
+                    81.. => {
+                        annotation_vec.extend_from_slice(&avg_return_annotate()[4..]);
+                        annotation_vec.extend_from_slice(&std_dev_annotate()[4..]);
+                    }
+                    65..=80 => {
+                        annotation_vec.extend_from_slice(&avg_return_annotate()[3..]);
+                        annotation_vec.extend_from_slice(&std_dev_annotate()[3..]);
+                    }
+                    50..=64 => {
+                        annotation_vec.extend_from_slice(&avg_return_annotate()[2..]);
+                        annotation_vec.extend_from_slice(&std_dev_annotate()[2..]);
+                    }
+                    36..=49 => {
+                        annotation_vec.extend_from_slice(&avg_return_annotate()[1..]);
+                        annotation_vec.extend_from_slice(&std_dev_annotate()[1..]);
+                    }
+                    0..=35 => {
+                        annotation_vec.extend_from_slice(&avg_return_annotate()[0..]);
+                        annotation_vec.extend_from_slice(&std_dev_annotate()[0..]);
+                    }
+                }
+                annotation_vec
             };
-
             // y axis data / format
             let y_axis = || {
                 let owner_max = owner_savings_arr.with_untracked(|owner_savings_arr| {
@@ -329,66 +460,53 @@ fn App() -> impl IntoView {
                     .auto_range(false)
             };
 
-            let legend = || {
-                Legend::new()
-                    .x(1.0)
-                    .y(1.0)
-                    .item_sizing(ItemSizing::Trace)
-                    .font(Font::new().size(12))
+            // savings values to plot (owner and renter)
+            let traces = || {
+                let owner_trace = Scatter::new(
+                    x_values.to_vec(),
+                    owner_savings_arr.get_untracked()[start_x_value..DEATH].to_vec(),
+                )
+                .visible(plotly::common::Visible::True)
+                .fill_color(NamedColor::PaleTurquoise)
+                .name("Owner");
+
+                let renter_trace = Scatter::new(
+                    x_values.to_vec(),
+                    renter_savings_arr.get_untracked()[start_x_value..DEATH].to_vec(),
+                )
+                .visible(plotly::common::Visible::True)
+                .fill_color(NamedColor::LightSalmon)
+                .name("Renter");
+
+                (owner_trace, renter_trace)
             };
 
-            let owner_trace = Scatter::new(
-                x_values.to_vec(),
-                owner_savings_arr.get_untracked()[start_x_value..DEATH].to_vec(),
-            )
-            .visible(plotly::common::Visible::True)
-            .fill_color(NamedColor::PaleTurquoise)
-            .name("Owner");
-
-            let renter_trace = Scatter::new(
-                x_values.to_vec(),
-                renter_savings_arr.get_untracked()[start_x_value..DEATH].to_vec(),
-            )
-            .visible(plotly::common::Visible::True)
-            .fill_color(NamedColor::LightSalmon)
-            .name("Renter");
-
-            plot.add_trace(owner_trace);
-            plot.add_trace(renter_trace);
-
-            // sizing plot
-            let err_sizing = || {
-                plotly::Layout::new()
-                    .title(Title::new("Renting vs Owning"))
-                    .legend(legend())
-                    .annotations(vec![avg_return_annotate(), std_dev_annotate()])
-                    .x_axis(x_axis())
-                    .y_axis(y_axis())
-                    .auto_size(true)
-            };
-
-            let mut sizing = || {
-                if let (Some(width), Some(height)) = (
-                    width.get_untracked().map(|width| width * 0.75),
-                    height.get_untracked().map(|height| height * 0.5),
-                ) {
-                    let layout = plotly::Layout::new()
+            let layouts = || {
+                let general_layout = || {
+                    plotly::Layout::new()
                         .font(Font::new().family("Courier New, monospace"))
                         .title(Title::new("Renting vs Owning"))
-                        .legend(legend())
-                        .annotations(vec![avg_return_annotate(), std_dev_annotate()])
+                        .annotations(annotations())
+                        .x_axis(x_axis())
+                        .y_axis(y_axis())
+                        .show_legend(false)
+                };
+                if let (Some(width), Some(height)) = (
+                    width.get_untracked().map(|width| width * 0.9),
+                    height.get_untracked().map(|height| height * 0.5),
+                ) {
+                    general_layout()
+                        .auto_size(false)
                         .width(width as usize)
                         .height(height as usize)
-                        .x_axis(x_axis())
-                        .y_axis(y_axis());
-                    plot.set_layout(layout)
                 } else {
-                    plot.set_layout(err_sizing())
+                    general_layout().auto_size(true)
                 }
             };
-
-            sizing();
-
+            let traces = traces();
+            plot.add_trace(traces.0);
+            plot.add_trace(traces.1);
+            plot.set_layout(layouts());
             plotly::bindings::new_plot("plot", &plot).await;
         },
     );
@@ -413,6 +531,7 @@ fn App() -> impl IntoView {
     );
 
     create_effect(move |_| {
+        expand_methodology.get();
         age.get();
         networth.get();
         retirement_age.get();
@@ -428,10 +547,9 @@ fn App() -> impl IntoView {
         savers_derived.get();
         inflation_rates.get();
         interest_rates.get();
-        width.get();
-        height.get();
+        //width.get();
+        //height.get();
         plot_resource.refetch();
-        expand_methodology.get();
         if pause_resume.get() && is_active.get() {
             pause();
         } else {
@@ -445,26 +563,6 @@ fn App() -> impl IntoView {
                 <div id="plot-container-top-row">
                     <div id="plot-container-chart">
                         <div id="plot"></div>
-
-                    </div>
-                    <div id="plot-container-methodology">
-                        <Show when=move || expand_methodology.get()>
-                            <h3>Methodology</h3>
-                            <p>
-                                "This calculator compares the savings of a renter vs a home owner.
-                                A Monte Carlo simulation is used to calculate stock market returns
-                                and inflation rates. The simulation run 1000 times would produce 
-                                interest rates starting close to the following: 6.25% and falls to
-                                4.5% as you age. Additionally the std deviation of the interest rates
-                                also decreases as you age to assume less risk is introduced the less
-                                time you have to recover from a market crash. Both interest and inflation
-                                are compounded monthly using an annual interest rate / 12.0. Inflation is 
-                                impacts rent, home expenses (1% annually), monthly expenses, and monthly income.
-                                Interest is only applied to liquid assets (home value is not interest bearing).
-                                We assume you continue to live in the same home for the duration of the simulation.
-                                "
-                            </p>
-                        </Show>
                     </div>
                 </div>
                 <div id="plot-container-action-button">
@@ -493,6 +591,26 @@ fn App() -> impl IntoView {
                     </button>
                 </div>
             </div>
+            <Show when=move || expand_methodology.try_get().unwrap_or(true)>
+                <div id="methodology-container">
+                    <h3>Methodology</h3>
+                    <p>
+                        "This calculator compares the savings of a renter vs a home owner.
+                        A Monte Carlo simulation is used to calculate stock market returns
+                        and inflation rates. The simulation run 1000 times would produce 
+                        interest rates starting close to the following: 6.25% and falls to
+                        4.5% as you age. Additionally the std deviation of the interest rates
+                        also decreases as you age to assume less risk is introduced the less
+                        time you have to recover from a market crash. Both interest and inflation
+                        are compounded monthly using an annual interest rate / 12.0. Inflation is 
+                        impacts rent, home expenses (1% annually), monthly expenses, and monthly income.
+                        Interest is only applied to liquid assets (home value is not interest bearing).
+                        We assume you continue to live in the same home for the duration of the simulation.
+                        "
+                    </p>
+
+                </div>
+            </Show>
             <div id="opts-container">
                 <DisplayOptions set_val=set_age fn_meta=age_opts/>
                 <DisplayOptions set_val=set_networth fn_meta=networth_opts/>

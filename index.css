@@ -4,6 +4,10 @@ html {
     font-style: normal;
 }
 
+#container {
+    position: relative;
+}
+
 select, button {
     color: black; /* Text color */
     background-color: white; /* Background color */
@@ -42,41 +46,49 @@ select:focus, button:focus {
     box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1); /* Minimal shadow */
 }
 
-#select-container-footnotes, #plot-container-methodology {
-    font-size: 0.8em; /* Makes the text smaller */
-    color: #666666; /* Optional: changes the color to a lighter shade for a note-like appearance */
+#select-container-footnotes {
+    font-size: 0.9em; /* Makes the text smaller */
+    color: #635a5a; /* Optional: changes the color to a lighter shade for a note-like appearance */
     border-left: 3px solid #666666; /* Optional: adds a left border for emphasis */
-    padding-left: 10px; /* Adds padding to the left for better readability */
-    margin-top: 10px; /* Adds space above the note */
-    margin-bottom: 10px; /* Adds space below the note */
     font-style: italic; /* Optional: makes the text italic */
+}
+
+#methodology-container {
+    color: #635a5a; /* Optional: changes the color to a lighter shade for a note-like appearance */
+    border-left: 3px solid #666666; /* Optional: adds a left border for emphasis */
+    font-style: italic; /* Optional: makes the text italic */
+}
+
+#opts-container {
+    padding: 10px;
 }
 
 #plot-container {
     display: flex; /* Enables Flexbox */
     flex-direction: column; /* Stacks children vertically */
-    height: 500px; /* Fixed height, adjust as necessary */
-    /* Or use max-height: 500px; for a maximum height */
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
 }
 
 #plot-container-top-row {
     display: flex; /* Enables Flexbox for the top row */
+    justify-content: center;
+    align-items: center;
 }
 
 #plot-container-chart {
     flex: 1 1 auto; /* Don't grow, shrink as needed, based on content */
-    overflow: hidden;
 }
 
 #plot-container-methodology {
     flex: 1 1 auto; /* Don't grow, shrink as needed, based on content */
-    padding-left: 5px;
-    overflow: hidden;
+    padding-left: 2px;
      /* Adds some space between the chart and methodology */
 }
 
 #plot-container-action-button {
-    margin-top: 10px; /* Adds space above the button */
+    margin-top: 2px; /* Adds space above the button */
     display: flex; /* Enables Flexbox */
     justify-content: center; /* Centers the button horizontally */
 }
