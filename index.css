@@ -64,15 +64,13 @@ select:focus, button:focus {
 }
 
 #plot-container {
-    display: flex; /* Enables Flexbox */
-    flex-direction: column; /* Stacks children vertically */
     justify-content: center;
     align-items: center;
     padding: 5px;
 }
 
 #plot-container-top-row {
-    display: flex; /* Enables Flexbox for the top row */
+    
     justify-content: center;
     align-items: center;
 }
@@ -85,10 +83,4 @@ select:focus, button:focus {
     flex: 1 1 auto; /* Don't grow, shrink as needed, based on content */
     padding-left: 2px;
      /* Adds some space between the chart and methodology */
-}
-
-#plot-container-action-button {
-    margin-top: 2px; /* Adds space above the button */
-    display: flex; /* Enables Flexbox */
-    justify-content: center; /* Centers the button horizontally */
 }
