@@ -3,10 +3,7 @@ mod calculate;
 use crate::calculate::consts::*;
 use crate::calculate::rates::new_rates;
 use crate::calculate::saver::{Saver, SaverType};
-
-use leptos::view;
 use leptos::*;
-use leptos::{component, create_signal, CollectView, IntoView, SignalGet};
 use leptos_use::utils::Pausable;
 use leptos_use::*;
 use num_format::{Locale, ToFormattedString};
@@ -37,8 +34,7 @@ fn App() -> impl IntoView {
             Ok(val) => {
                 set_width.set(val.as_f64());
             }
-            Err(e) => {
-                logging::error!("Error getting window width: {:?}", e);
+            Err(_) => {
                 set_width.set(None);
             }
         };
@@ -50,8 +46,7 @@ fn App() -> impl IntoView {
             Ok(val) => {
                 set_height.set(val.as_f64());
             }
-            Err(e) => {
-                logging::error!("Error getting window height: {:?}", e);
+            Err(_) => {
                 set_height.set(None);
             }
         };
@@ -65,7 +60,7 @@ fn App() -> impl IntoView {
     let (expand_methodology, set_expand_methodology) = create_signal(false);
     let (expand_y_axis_settings, set_expand_y_axis_settings) = create_signal(false);
     let (pause_resume, set_pause_resume) = create_signal(false);
-    let (interval, _) = create_signal(500_u64);
+    let (find_equivelent_rent, set_find_equivelent_rent) = create_signal(false);
 
     let (age, set_age) = create_signal(Opts::Int(30));
     let age_opts = || OptionMeta {
@@ -184,17 +179,17 @@ fn App() -> impl IntoView {
     let owner_savings = move || {
         Saver {
             monthly_rent: 0.0,
-            current_age: age.get().get_int(),
-            retirement_age: retirement_age.get().get_int(),
-            total_savings: networth.get().get_float(),
-            monthly_income: monthly_income.get().get_float(),
-            monthly_expenses: monthly_expenses.get().get_float(),
-            home_value: home_value.get().get_float(),
-            mortgage_debt: mortgage.get().get_float(),
-            mortgage_rate: mortgage_rate.get().get_float(),
-            mortgage_term: mortgage_term.get().get_int(),
-            min_baseline_retirement_income: min_retirement_income.get().get_float(),
-            max_baseline_retirement_income: max_retirement_income.get().get_float(),
+            current_age: age.get_untracked().get_int(),
+            retirement_age: retirement_age.get_untracked().get_int(),
+            total_savings: networth.get_untracked().get_float(),
+            monthly_income: monthly_income.get_untracked().get_float(),
+            monthly_expenses: monthly_expenses.get_untracked().get_float(),
+            home_value: home_value.get_untracked().get_float(),
+            mortgage_debt: mortgage.get_untracked().get_float(),
+            mortgage_rate: mortgage_rate.get_untracked().get_float(),
+            mortgage_term: mortgage_term.get_untracked().get_int(),
+            min_baseline_retirement_income: min_retirement_income.get_untracked().get_float(),
+            max_baseline_retirement_income: max_retirement_income.get_untracked().get_float(),
             home_expenses: 0.0,
             home_savings: vec![0.0; DEATH],
             rental_savings: vec![0.0; DEATH],
@@ -209,18 +204,18 @@ fn App() -> impl IntoView {
 
     let renter_savings = move || {
         Saver {
-            monthly_rent: rent.get().get_float(),
-            current_age: age.get().get_int(),
-            retirement_age: retirement_age.get().get_int(),
-            total_savings: networth.get().get_float(),
-            monthly_income: monthly_income.get().get_float(),
-            monthly_expenses: monthly_expenses.get().get_float(),
+            monthly_rent: rent.get_untracked().get_float(),
+            current_age: age.get_untracked().get_int(),
+            retirement_age: retirement_age.get_untracked().get_int(),
+            total_savings: networth.get_untracked().get_float(),
+            monthly_income: monthly_income.get_untracked().get_float(),
+            monthly_expenses: monthly_expenses.get_untracked().get_float(),
             home_value: 0.0,
             mortgage_debt: 0.0,
             mortgage_rate: 0.0,
             mortgage_term: 0,
-            min_baseline_retirement_income: min_retirement_income.get().get_float(),
-            max_baseline_retirement_income: max_retirement_income.get().get_float(),
+            min_baseline_retirement_income: min_retirement_income.get_untracked().get_float(),
+            max_baseline_retirement_income: max_retirement_income.get_untracked().get_float(),
             home_expenses: 0.0,
             home_savings: vec![0.0; DEATH],
             rental_savings: vec![0.0; DEATH],
@@ -233,10 +228,100 @@ fn App() -> impl IntoView {
         .calculate_savings(SaverType::Renter, DEATH as u8)
     };
 
-    let savers_derived = create_memo(move |_| {
-        set_renter_savings_arr.set(renter_savings());
-        set_owner_savings_arr.set(owner_savings());
-    });
+    let calculate_renter_equivelence = move || {
+
+        let owner_saved = owner_savings_arr.with_untracked(|owner_saved| owner_saved.last().unwrap_or(&0.0).clone());
+        
+        let adjust_rent_directionally = |rent: &f32, sign: &f32, abs_diff: &f32| {
+
+            match abs_diff {
+                x if x >= &50000000.0 => {
+                    rent + (&50000.0 * sign)
+                },
+                x if (&1000000.0..=&50000000.0).contains(&x) => {
+                    rent + (&1000.0 * sign)
+                },
+                x if (&100000.0..&1000000.0).contains(&x) => {
+                    rent + (&100.0 * sign)
+                },
+                x if (&10000.0..&100000.0).contains(&x) => {
+                    rent + (&10.0 * sign)
+                },
+                x if (&1000.0..&10000.0).contains(&x) => {
+                    rent + (&1.0 * sign)
+                },
+                x if x <= &1000.0 => {
+                    rent + (&0.1 * sign)
+                },
+                _ => {
+                    *rent
+                }
+            }
+        };
+
+        let adjust_rent = |rent: &f32, savings: &f32, owner_savings: &f32| {
+            if f32::abs(savings / owner_savings - 1.0) < 0.0025 {
+                *rent
+            } else if savings > owner_savings {
+                adjust_rent_directionally(rent, &1.0, &f32::abs(savings - owner_savings))
+            } else {
+                adjust_rent_directionally(rent, &-1.0, &f32::abs(savings - owner_savings))
+            }
+        };
+
+        let rent = rent.with_untracked(|rent| rent.get_float());
+        let current_age = age.with_untracked(|age| age.get_int());
+        let retirement_age = retirement_age.with_untracked(|retirement_age| retirement_age.get_int());
+        let networth = networth.with_untracked(|networth| networth.get_float());
+        let monthly_income = monthly_income.with_untracked(|monthly_income| monthly_income.get_float());
+        let monthly_expenses = monthly_expenses.with_untracked(|monthly_expenses| monthly_expenses.get_float());
+        let _home_value = home_value.with_untracked(|home_value| home_value.get_float());
+        let _mortgage = mortgage.with_untracked(|mortgage| mortgage.get_float());
+        let _mortgage_rate = mortgage_rate.with_untracked(|mortgage_rate| mortgage_rate.get_float());
+        let _mortgage_term = mortgage_term.with_untracked(|mortgage_term| mortgage_term.get_int());
+        let min_retirement_income = min_retirement_income.with_untracked(|min_retirement_income| min_retirement_income.get_float());
+        let max_retirement_income = max_retirement_income.with_untracked(|max_retirement_income| max_retirement_income.get_float());
+        let int_rates = interest_rates.with_untracked(|interest_rates| interest_rates.clone());
+        let inf_rates = inflation_rates.with_untracked(|inflation_rates| inflation_rates.clone());
+        let mut rs = vec![0.0; DEATH];
+        for _ in 0..10 {
+            let mut saver = Saver {
+                monthly_rent: rent,
+                current_age,
+                retirement_age,
+                total_savings: networth,
+                monthly_income,
+                monthly_expenses,
+                home_value: 0.0,
+                mortgage_debt: 0.0,
+                mortgage_rate: 0.0,
+                mortgage_term: 0,
+                min_baseline_retirement_income: min_retirement_income,
+                max_baseline_retirement_income: max_retirement_income,
+                home_expenses: 0.0,
+                home_savings: vec![0.0; DEATH],
+                rental_savings: vec![0.0; DEATH],
+                active_retirement: false,
+                home_owned_age: None::<u8>,
+                cached_mortgage_installment: None::<f32>,
+                interest_rates,
+                inflation_rates,
+            };
+            rs = saver.calculate_savings(SaverType::Renter, DEATH as u8);
+            match rs.last() {
+                Some(renter_saved) => {
+                    saver.monthly_rent = adjust_rent(&rent, &owner_saved, renter_saved);
+                }
+                None => {
+                    return vec![0.0; DEATH];
+                    
+                }
+            }
+            set_interest_rates.set(int_rates.clone());
+            set_inflation_rates.set(inf_rates.clone());
+        };
+        rs
+    };
 
     let (y_axis_max, set_y_axis_max) = create_signal(Opts::Float(100000000.0));
     let y_axis_opts = move || OptionMeta {
@@ -267,7 +352,7 @@ fn App() -> impl IntoView {
             let annotations = || {
                 // function to calculate avg returns for annotation
                 let avg_returns = |start: usize, stop: usize| {
-                    interest_rates.with(|interest_rates| {
+                    interest_rates.with_untracked(|interest_rates| {
                         interest_rates[start..stop]
                             .iter()
                             .map(|x| x.get_float_ref())
@@ -278,7 +363,7 @@ fn App() -> impl IntoView {
 
                 // function to calculate std dev for annotation
                 let std_dev = |start: usize, stop: usize| {
-                    interest_rates.with(|interest_rates| {
+                    interest_rates.with_untracked(|interest_rates| {
                         interest_rates[start..stop]
                             .iter()
                             .map(|x| x.get_float_ref())
@@ -597,10 +682,21 @@ fn App() -> impl IntoView {
         },
     );
 
-    let Pausable {
+    let savers_derived = create_memo(move |_| {
+        set_owner_savings_arr.set(owner_savings());
+        if find_equivelent_rent.get() {
+            set_renter_savings_arr.set(calculate_renter_equivelence());
+            set_find_equivelent_rent.set(false);
+            plot_resource.refetch();
+        } else {
+            set_renter_savings_arr.set(renter_savings());
+        }
+    });
+
+    let Pausable{
         pause,
         resume,
-        is_active,
+        is_active: _,
     } = use_interval_fn_with_options(
         move || {
             let rates = new_rates();
@@ -609,13 +705,13 @@ fn App() -> impl IntoView {
             set_owner_savings_arr.update(|i| *i = owner_savings());
             set_renter_savings_arr.update(|i| *i = renter_savings());
         },
-        interval,
+        500_u64,
         UseIntervalFnOptions {
             immediate: true,
             immediate_callback: true,
         },
     );
-
+    
     create_effect(move |_| {
         y_axis_max.get();
         expand_methodology.get();
@@ -631,11 +727,12 @@ fn App() -> impl IntoView {
         mortgage_term.get();
         min_retirement_income.get();
         max_retirement_income.get();
+        find_equivelent_rent.get();
         savers_derived.get();
         inflation_rates.get();
         interest_rates.get();
         plot_resource.refetch();
-        if pause_resume.get() && is_active.get() {
+        if pause_resume.get() {
             pause();
         } else {
             resume();
@@ -658,7 +755,6 @@ fn App() -> impl IntoView {
                     <button
                         id="methodology-button"
                         on:click=move |_| {
-                            set_pause_resume.set(!pause_resume.get());
                             set_expand_methodology.set(!expand_methodology.get());
                         }
                     >
@@ -687,6 +783,12 @@ fn App() -> impl IntoView {
                             }
                         }}
 
+                    </button>
+                    <button on:click={move |_| {
+                        set_pause_resume.set(!pause_resume.get());
+                        set_find_equivelent_rent.set(!find_equivelent_rent.get());
+                    }}>
+                        "Find Equivelent Rent"
                     </button>
                 </div>
             </div>
