@@ -127,7 +127,11 @@ impl Saver {
             match self.apply_monthly_changes() {
                 // you can not spend continue if you have no more than your home
                 num if num > self.home_value - self.mortgage_debt => {
-                    self.total_savings = num + interest;
+                    if self.total_savings > 1000000000.0 {
+                        self.total_savings = 1000000000.0;
+                    } else {
+                        self.total_savings = num + interest;
+                    }
                 }
                 _ => {
                     self.total_savings = 0.0;

@@ -3,13 +3,14 @@ mod calculate;
 use crate::calculate::consts::*;
 use crate::calculate::rates::new_rates;
 use crate::calculate::saver::{Saver, SaverType};
+
 use leptos::*;
 use leptos_use::utils::Pausable;
 use leptos_use::*;
 use num_format::{Locale, ToFormattedString};
 use plotly::color::NamedColor;
 use plotly::common::{Anchor, DashType, Font, Line, Title};
-use plotly::layout::Axis;
+use plotly::layout::{Axis, Margin};
 use plotly::Plot;
 use plotly::Scatter;
 
@@ -62,110 +63,130 @@ fn App() -> impl IntoView {
     let (pause_resume, set_pause_resume) = create_signal(false);
     let (find_equivelent_rent, set_find_equivelent_rent) = create_signal(false);
 
-    let (age, set_age) = create_signal(Opts::Int(30));
-    let age_opts = || OptionMeta {
+    let default_age = 30;
+    let (age, set_age) = create_signal(Opts::Int(default_age));
+    let age_opts = move || OptionMeta {
         numtype: OptType::Int,
         name: "Age".to_string(),
         info: "this is your current age".to_string(),
-        default_val: Opts::Int(30),
+        default_val: Opts::Int(default_age),
         optarr: &AGE_RANGE,
     };
 
-    let (networth, set_networth) = create_signal(Opts::Float(1500000.0));
-    let networth_opts = || OptionMeta {
+    let (networth, set_networth) = create_signal(Opts::Float(200000.0));
+    let networth_opts = move || OptionMeta {
         numtype: OptType::Float,
         name: "Net Worth".to_string(),
         info: "this is your current net worth (*include home principle)".to_string(),
-        default_val: Opts::Float(1500000.0),
+        default_val: Opts::Float(200000.0),
         optarr: &NETWORTH_RANGE,
     };
-    let (retirement_age, set_retirement_age) = create_signal(Opts::Int(65));
-    let retirement_age_opts = || OptionMeta {
+
+    let default_retirement_age = 65;
+    let (retirement_age, set_retirement_age) = create_signal(Opts::Int(default_retirement_age));
+    let retirement_age_opts = move || OptionMeta {
         numtype: OptType::Int,
         name: "Retirement Age".to_string(),
         info: "this is the age you want to retire at".to_string(),
-        default_val: Opts::Int(65),
+        default_val: Opts::Int(default_retirement_age),
         optarr: &AGE_RANGE,
     };
-    let (monthly_income, set_monthly_income) = create_signal(Opts::Float(10000.0));
-    let monthly_income_opts = || OptionMeta {
+
+    let default_monthly_income = 6000.0;
+    let (monthly_income, set_monthly_income) = create_signal(Opts::Float(default_monthly_income));
+    let monthly_income_opts = move || OptionMeta {
         numtype: OptType::Float,
         name: "Monthly Income".to_string(),
         info: "this is your current monthly income".to_string(),
-        default_val: Opts::Float(10000.0),
+        default_val: Opts::Float(default_monthly_income),
         optarr: &INCEXP_RANGE,
     };
-    let (monthly_expenses, set_monthly_expenses) = create_signal(Opts::Float(4000.0));
-    let monthly_expenses_opts = || OptionMeta {
+
+    let default_monthly_expenses = 5000.0;
+    let (monthly_expenses, set_monthly_expenses) = create_signal(Opts::Float(default_monthly_expenses));
+    let monthly_expenses_opts = move || OptionMeta {
         numtype: OptType::Float,
         name: "Monthly Expenses".to_string(),
         info:
             "this is your current monthly expenses NOT including rent or mortgage related expenses"
                 .to_string(),
-        default_val: Opts::Float(4000.0),
+        default_val: Opts::Float(default_monthly_expenses),
         optarr: &INCEXP_RANGE,
     };
-    let (rent, set_rent) = create_signal(Opts::Float(4000.0));
-    let rent_opts = || {
+
+    let default_rent = 2000.0;
+    let (rent, set_rent) = create_signal(Opts::Float(default_rent));
+    let rent_opts = move || {
         OptionMeta {
             numtype: OptType::Float,
             name: "Rent".to_string(),
             info: "this is your current monthly rent or amount you wish to compare against your home value".to_string(),
-            default_val: Opts::Float(4000.0),
+            default_val: Opts::Float(default_rent),
             optarr: &INCEXP_RANGE,
         }
     };
-    let (home_value, set_home_value) = create_signal(Opts::Float(1000000.0));
-    let home_value_opts = || {
+
+    let default_home_value = 500000.0;
+    let (home_value, set_home_value) = create_signal(Opts::Float(default_home_value));
+    let home_value_opts = move || {
         OptionMeta {
             numtype: OptType::Float,
             name: "Home Value".to_string(),
             info: "this is the current value of your home or the value of a home you wish to compare against your rent".to_string(),
-            default_val: Opts::Float(1000000.0),
+            default_val: Opts::Float(default_home_value),
             optarr: &NETWORTH_RANGE,
         }
     };
-    let (mortgage, set_mortgage) = create_signal(Opts::Float(0.0));
-    let mortgage_opts = || OptionMeta {
+
+    let default_mortgage = 400000.0;
+    let (mortgage, set_mortgage) = create_signal(Opts::Float(default_mortgage));
+    let mortgage_opts = move || OptionMeta {
         numtype: OptType::Float,
         name: "Mortgage".to_string(),
         info: "current/total mortgage amount on home".to_string(),
-        default_val: Opts::Float(0.0),
+        default_val: Opts::Float(default_mortgage),
         optarr: &NETWORTH_RANGE,
     };
-    let (mortgage_rate, set_mortgage_rate) = create_signal(Opts::Float(0.03));
-    let mortgage_rate_opts = || OptionMeta {
+
+    let default_mortgage_rate = 0.05;
+    let (mortgage_rate, set_mortgage_rate) = create_signal(Opts::Float(default_mortgage_rate));
+    let mortgage_rate_opts = move || OptionMeta {
         numtype: OptType::Float,
         name: "Mortgage Rate".to_string(),
         info: "current/total mortgage rate".to_string(),
-        default_val: Opts::Float(0.03),
+        default_val: Opts::Float(default_mortgage_rate),
         optarr: &MORTGAGE_RATES,
     };
-    let (mortgage_term, set_mortgage_term) = create_signal(Opts::Int(30));
-    let mortgage_term_opts = || OptionMeta {
+
+    let default_mortgage_term = 30;
+    let (mortgage_term, set_mortgage_term) = create_signal(Opts::Int(default_mortgage_term));
+    let mortgage_term_opts = move || OptionMeta {
         numtype: OptType::Int,
         name: "Mortgage Term".to_string(),
         info: "duration of your mortgage in years".to_string(),
-        default_val: Opts::Int(30),
+        default_val: Opts::Int(default_mortgage_term),
         optarr: &AGE_RANGE,
     };
-    let (min_retirement_income, set_min_retirement_income) = create_signal(Opts::Float(3000.0));
-    let min_retirement_income_opts = || {
+
+    let default_min_retirement_income = 2000.0;
+    let (min_retirement_income, set_min_retirement_income) = create_signal(Opts::Float(default_min_retirement_income));
+    let min_retirement_income_opts = move || {
         OptionMeta {
             numtype: OptType::Float,
             name: "Min Monthly Retirement Income".to_string(),
             info: "this is the minimum amount of monthly income you want to have in retirement (in today's dollars)".to_string(),
-            default_val: Opts::Float(2000.0),
+            default_val: Opts::Float(default_min_retirement_income),
             optarr: &INCEXP_RANGE,
         }
     };
-    let (max_retirement_income, set_max_retirement_income) = create_signal(Opts::Float(5000.0));
-    let max_retirement_income_opts = || {
+    let default_max_retirement_income = 3000.0;
+    let (max_retirement_income, set_max_retirement_income) = create_signal(Opts::Float(default_max_retirement_income));
+    let max_retirement_income_opts = move || {
         OptionMeta {
             numtype: OptType::Float,
             name: "Max Monthly Retirement Income".to_string(),
             info: "this is the maximum amount of monthly income you want to have in retirement (in today's dollars)".to_string(),
-            default_val: Opts::Float(4000.0),
+            default_val: Opts::Float(default_max_retirement_income),
             optarr: &INCEXP_RANGE,
         }
     };
@@ -175,6 +196,8 @@ fn App() -> impl IntoView {
 
     let (owner_savings_arr, set_owner_savings_arr) = create_signal(vec![0.0; 100]);
     let (renter_savings_arr, set_renter_savings_arr) = create_signal(vec![0.0; 100]);
+
+    let (equivelent_rent, set_equivelent_rent) = create_signal("".to_string());
 
     let owner_savings = move || {
         Saver {
@@ -230,46 +253,26 @@ fn App() -> impl IntoView {
 
     let calculate_renter_equivelence = move || {
 
-        let owner_saved = owner_savings_arr.with_untracked(|owner_saved| owner_saved.last().unwrap_or(&0.0).clone());
-        
-        let adjust_rent_directionally = |rent: &f32, sign: &f32, abs_diff: &f32| {
+        let owner_saved = owner_savings_arr.with_untracked(|owner_saved| *owner_saved.last().unwrap_or(&0.0));
+        let last_age_owner_saved = owner_savings_arr.with_untracked(|owner_saved| 
+            owner_saved.iter().enumerate().find(|(_, x)| **x >= 0.0).map(|(i, _)| i).unwrap_or(0)
+        );
 
-            match abs_diff {
-                x if x >= &50000000.0 => {
-                    rent + (&50000.0 * sign)
-                },
-                x if (&1000000.0..=&50000000.0).contains(&x) => {
-                    rent + (&1000.0 * sign)
-                },
-                x if (&100000.0..&1000000.0).contains(&x) => {
-                    rent + (&100.0 * sign)
-                },
-                x if (&10000.0..&100000.0).contains(&x) => {
-                    rent + (&10.0 * sign)
-                },
-                x if (&1000.0..&10000.0).contains(&x) => {
-                    rent + (&1.0 * sign)
-                },
-                x if x <= &1000.0 => {
-                    rent + (&0.1 * sign)
-                },
-                _ => {
-                    *rent
-                }
-            }
+        let adjust_rent_directionally = |rent: &f32, sign: &f32| {
+            rent + (0.1 * sign)
         };
 
         let adjust_rent = |rent: &f32, savings: &f32, owner_savings: &f32| {
-            if f32::abs(savings / owner_savings - 1.0) < 0.0025 {
-                *rent
-            } else if savings > owner_savings {
-                adjust_rent_directionally(rent, &1.0, &f32::abs(savings - owner_savings))
+            if f32::abs(savings - owner_savings) < 100.0 || *rent < 100.0 {
+                (*rent, false)
+            } else if savings < owner_savings {
+                (adjust_rent_directionally(rent, &1.0), true)
             } else {
-                adjust_rent_directionally(rent, &-1.0, &f32::abs(savings - owner_savings))
+                (adjust_rent_directionally(rent, &-1.0), true)
             }
         };
 
-        let rent = rent.with_untracked(|rent| rent.get_float());
+        let mut rent = rent.with_untracked(|rent| rent.get_float());
         let current_age = age.with_untracked(|age| age.get_int());
         let retirement_age = retirement_age.with_untracked(|retirement_age| retirement_age.get_int());
         let networth = networth.with_untracked(|networth| networth.get_float());
@@ -281,11 +284,10 @@ fn App() -> impl IntoView {
         let _mortgage_term = mortgage_term.with_untracked(|mortgage_term| mortgage_term.get_int());
         let min_retirement_income = min_retirement_income.with_untracked(|min_retirement_income| min_retirement_income.get_float());
         let max_retirement_income = max_retirement_income.with_untracked(|max_retirement_income| max_retirement_income.get_float());
-        let int_rates = interest_rates.with_untracked(|interest_rates| interest_rates.clone());
-        let inf_rates = inflation_rates.with_untracked(|inflation_rates| inflation_rates.clone());
         let mut rs = vec![0.0; DEATH];
-        for _ in 0..10 {
-            let mut saver = Saver {
+        let mut continue_adj = true;
+        for _ in 0..1000 {
+            rs = Saver {
                 monthly_rent: rent,
                 current_age,
                 retirement_age,
@@ -306,29 +308,29 @@ fn App() -> impl IntoView {
                 cached_mortgage_installment: None::<f32>,
                 interest_rates,
                 inflation_rates,
-            };
-            rs = saver.calculate_savings(SaverType::Renter, DEATH as u8);
-            match rs.last() {
-                Some(renter_saved) => {
-                    saver.monthly_rent = adjust_rent(&rent, &owner_saved, renter_saved);
-                }
-                None => {
-                    return vec![0.0; DEATH];
-                    
-                }
+            }.calculate_savings(SaverType::Renter, DEATH as u8);
+
+            (rent, continue_adj) = adjust_rent(&rent, &owner_saved, &rs[last_age_owner_saved]);
+
+            if !continue_adj {
+                break;
             }
-            set_interest_rates.set(int_rates.clone());
-            set_inflation_rates.set(inf_rates.clone());
-        };
+        }
+        set_equivelent_rent.set(format!(
+            "Home:{}\nRent: {}", 
+            (home_value.get().get_float().trunc() as i32).to_formatted_string(&Locale::en),
+            (rent.trunc() as i32).to_formatted_string(&Locale::en)
+        ));
         rs
     };
 
-    let (y_axis_max, set_y_axis_max) = create_signal(Opts::Float(100000000.0));
+    let default_y_axis_max = 10000000.0;
+    let (y_axis_max, set_y_axis_max) = create_signal(Opts::Float(default_y_axis_max));
     let y_axis_opts = move || OptionMeta {
         numtype: OptType::Float,
         name: "YAxis Max".to_string(),
         info: "this is the max value of the y axis".to_string(),
-        default_val: Opts::Float(100000000.0),
+        default_val: Opts::Float(default_y_axis_max),
         optarr: &YAXIS_BUCKETS,
     };
 
@@ -374,19 +376,19 @@ fn App() -> impl IntoView {
                 };
 
                 let x_pos = |_: usize, stop: usize| {
-                    (stop as f32 - start_x_value as f32) / (DEATH - start_x_value) as f32
+                    (stop as f32 - start_x_value as f32) / (DEATH - start_x_value) as f32 - 0.05
                 };
 
                 // adding annotations for avg return
                 let avg_return_annotate = || {
-                    let offset = 0.075;
+                    let offset = 0.225;
                     [
                         plotly::layout::Annotation::new()
                             .text(format!("{:.1}%", avg_returns(0, 35) * 100.0,))
                             .x_ref("paper")
                             .x(0.05)
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::DarkSeaGreen)),
@@ -395,7 +397,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(x_pos(36, 49))
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::DarkSeaGreen)),
@@ -404,7 +406,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(x_pos(50, 64))
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::DarkSeaGreen)),
@@ -413,7 +415,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(x_pos(65, 80))
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::DarkSeaGreen)),
@@ -422,7 +424,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(x_pos(81, DEATH))
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::DarkSeaGreen)),
@@ -431,7 +433,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(-0.05)
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(0.0)
                             .background_color(NamedColor::DarkSeaGreen)
@@ -442,14 +444,14 @@ fn App() -> impl IntoView {
 
                 // adding annotations for std dev
                 let std_dev_annotate = || {
-                    let offset = 0.15;
+                    let offset = 0.3;
                     [
                         plotly::layout::Annotation::new()
                             .text(format!("{:.1}%", std_dev(0, 35) * 100.0,))
                             .x_ref("paper")
                             .x(0.05)
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::LightSalmon)),
@@ -458,7 +460,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(x_pos(36, 49))
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::LightSalmon)),
@@ -467,7 +469,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(x_pos(50, 64))
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::LightSalmon)),
@@ -476,7 +478,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(x_pos(65, 80))
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::LightSalmon)),
@@ -485,7 +487,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(x_pos(81, DEATH))
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::LightSalmon)),
@@ -494,7 +496,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(-0.05)
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(0.0)
                             .background_color(NamedColor::LightSalmon)
@@ -505,14 +507,14 @@ fn App() -> impl IntoView {
 
                 // adding annotations for std dev
                 let age_annotate = || {
-                    let offset = 0.0;
+                    let offset = 0.15;
                     [
                         plotly::layout::Annotation::new()
                             .text(format!("{}-{}", start_x_value, 35))
                             .x_ref("paper")
                             .x(0.05)
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::BurlyWood)),
@@ -521,7 +523,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(x_pos(36, 49))
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::BurlyWood)),
@@ -530,7 +532,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(x_pos(50, 64))
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::BurlyWood)),
@@ -539,7 +541,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(x_pos(65, 80))
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::BurlyWood)),
@@ -548,7 +550,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(x_pos(81, DEATH))
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(27.0)
                             .font(Font::new().size(10).color(NamedColor::BurlyWood)),
@@ -557,7 +559,7 @@ fn App() -> impl IntoView {
                             .x_ref("paper")
                             .x(-0.05)
                             .y_ref("paper")
-                            .y(1.0 - offset)
+                            .y(0.0 - offset)
                             .show_arrow(false)
                             .text_angle(0.0)
                             .background_color(NamedColor::BurlyWood)
@@ -568,23 +570,32 @@ fn App() -> impl IntoView {
                 let trace_annotations = || {
                     [
                         plotly::layout::Annotation::new()
-                            .text("Renter")
-                            .x_ref("paper")
-                            .x(0.9)
-                            .y_ref("paper")
-                            .y(-0.1)
-                            .show_arrow(false)
-                            .text_angle(0.0)
-                            .font(Font::new().size(12).color(NamedColor::DarkSeaGreen)),
-                        plotly::layout::Annotation::new()
                             .text("Owner")
                             .x_ref("paper")
                             .x(0.9)
                             .y_ref("paper")
-                            .y(-0.15)
+                            .y(0.9)
+                            .show_arrow(false)
+                            .text_angle(0.0)
+                            .font(Font::new().size(12).color(NamedColor::DarkSeaGreen)),
+                        plotly::layout::Annotation::new()
+                            .text("Renter")
+                            .x_ref("paper")
+                            .x(0.9)
+                            .y_ref("paper")
+                            .y(0.85)
                             .show_arrow(false)
                             .text_angle(0.0)
                             .font(Font::new().size(12).color(NamedColor::LightSalmon)),
+                        plotly::layout::Annotation::new()
+                            .text(equivelent_rent.get())
+                            .x_ref("paper")
+                            .x(0.15)
+                            .y_ref("paper")
+                            .y(0.15)
+                            .show_arrow(false)
+                            .text_angle(0.0)
+                            .font(Font::new().size(10).color(NamedColor::IndianRed)),
                     ]
                 };
 
@@ -617,6 +628,7 @@ fn App() -> impl IntoView {
                     }
                 }
                 annotation_vec.extend_from_slice(&trace_annotations());
+
                 annotation_vec
             };
 
@@ -627,11 +639,11 @@ fn App() -> impl IntoView {
                     owner_savings_arr.get_untracked()[start_x_value..DEATH].to_vec(),
                 )
                 .visible(plotly::common::Visible::True)
-                .fill_color(NamedColor::LightSeaGreen)
+                .fill_color(NamedColor::DarkSeaGreen)
                 .line(
                     Line::new()
-                        .dash(DashType::Dash)
-                        .color(NamedColor::LightSalmon),
+                        .dash(DashType::Solid)
+                        .color(NamedColor::DarkSeaGreen),
                 )
                 .name("Owner");
 
@@ -640,18 +652,23 @@ fn App() -> impl IntoView {
                     renter_savings_arr.get_untracked()[start_x_value..DEATH].to_vec(),
                 )
                 .visible(plotly::common::Visible::True)
-                .fill_color(NamedColor::DarkSeaGreen)
+                .fill_color(NamedColor::LightSalmon)
                 .line(
                     Line::new()
-                        .dash(DashType::Solid)
-                        .color(NamedColor::DarkSeaGreen),
+                        .dash(DashType::Dash)
+                        .color(NamedColor::LightSalmon),
                 )
                 .name("Renter");
 
                 (owner_trace, renter_trace)
             };
 
-            let layouts = || {
+            let apply_layout = move || async move {
+
+                let traces = traces();
+                plot.add_trace(traces.0);
+                plot.add_trace(traces.1);
+
                 let general_layout = || {
                     plotly::Layout::new()
                         .font(Font::new().family("Courier New, monospace"))
@@ -661,24 +678,28 @@ fn App() -> impl IntoView {
                         .y_axis(y_axis())
                         .show_legend(false)
                 };
+
                 if let (Some(width), Some(height)) = (
-                    width.get_untracked().map(|width| width * 1.0),
-                    height.get_untracked().map(|height| height * 0.5),
+                    width.get().map(|width| width * 1.0),
+                    height.get().map(|height| height * 0.5),
                 ) {
-                    general_layout()
-                        .auto_size(true)
-                        .width(width as usize)
-                        .height(height as usize)
+                    plot.set_layout(
+                        general_layout()
+                            .width(width as usize)
+                            .height(height as usize)
+                            .margin(Margin::new().bottom(100)),
+                    );
                 } else {
-                    general_layout().auto_size(true)
+                    plot.set_layout(
+                        general_layout().auto_size(true)
+                        .margin(Margin::new().bottom(100))
+                    );
                 }
+                plotly::bindings::new_plot("plot", &plot).await;
             };
 
-            let traces = traces();
-            plot.add_trace(traces.0);
-            plot.add_trace(traces.1);
-            plot.set_layout(layouts());
-            plotly::bindings::new_plot("plot", &plot).await;
+            apply_layout().await;
+            
         },
     );
 
@@ -686,7 +707,6 @@ fn App() -> impl IntoView {
         set_owner_savings_arr.set(owner_savings());
         if find_equivelent_rent.get() {
             set_renter_savings_arr.set(calculate_renter_equivelence());
-            set_find_equivelent_rent.set(false);
             plot_resource.refetch();
         } else {
             set_renter_savings_arr.set(renter_savings());
@@ -699,13 +719,15 @@ fn App() -> impl IntoView {
         is_active: _,
     } = use_interval_fn_with_options(
         move || {
-            let rates = new_rates();
-            set_interest_rates.update(|i| *i = rates.0);
-            set_inflation_rates.update(|i| *i = rates.1);
-            set_owner_savings_arr.update(|i| *i = owner_savings());
-            set_renter_savings_arr.update(|i| *i = renter_savings());
+            if !find_equivelent_rent.get() {
+                let rates = new_rates();
+                set_interest_rates.update(|i| *i = rates.0);
+                set_inflation_rates.update(|i| *i = rates.1);
+                set_owner_savings_arr.update(|i| *i = owner_savings());
+                set_renter_savings_arr.update(|i| *i = renter_savings());
+            }
         },
-        500_u64,
+        2000_u64,
         UseIntervalFnOptions {
             immediate: true,
             immediate_callback: true,
@@ -748,6 +770,7 @@ fn App() -> impl IntoView {
                 <div id="plot-container-action-button">
                     <button on:click=move |_| {
                         set_pause_resume.set(!pause_resume.get());
+                        set_find_equivelent_rent.set(false);
                     }>
 
                         {move || { if pause_resume.get() { "Resume" } else { "Pause" } }}
@@ -785,8 +808,8 @@ fn App() -> impl IntoView {
 
                     </button>
                     <button on:click={move |_| {
-                        set_pause_resume.set(!pause_resume.get());
-                        set_find_equivelent_rent.set(!find_equivelent_rent.get());
+                        set_pause_resume.set(true);
+                        set_find_equivelent_rent.set(true);
                     }}>
                         "Find Equivelent Rent"
                     </button>
